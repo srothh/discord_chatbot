@@ -62,7 +62,6 @@ async def on_message(message):
         res = re.sub(r"<+.*(pad)+.*>+|(pad)>+|<+(pad)", "", out)
         # For some reason, output contains double space
         res = re.sub(r'\s+', ' ', res)
-        channel = message.channel.id
         await message.reply(res)
     elif re.match('-base_prompt', message.content):
         content = re.sub('-base_prompt ', "",message.content)
