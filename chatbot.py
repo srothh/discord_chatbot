@@ -34,7 +34,7 @@ def prepare_llm():
 
     memory = ConversationSummaryBufferMemory(llm=huggingface_pipe, max_token_limit=max_memory_size)
     # base conversational prompt for the chatbot, change to change the "personality" of the bot
-    base_prompt = "You are a friendly chatbot who always responds in a cute and endearing manner."
+    base_prompt = "You are a friendly chatbot who always responds like a pirate."
     chain = ConversationChain(llm=huggingface_pipe, memory=memory,
                                          prompt=PromptTemplate(input_variables=['history', 'input'],
                                                                template=base_prompt + '\n\nCurrent conversation:\n{history}\nHuman: {input}\nAI:'))
