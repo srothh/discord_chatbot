@@ -11,7 +11,7 @@ from transformers import AutoTokenizer, pipeline, AutoModelForSeq2SeqLM
 from dotenv import load_dotenv
 
 # Setup the LLM for text generation
-def prepare_llm():
+def prepare_llm(base_prompt):
     # Model changeable, though different Class may be needed than AutoModelForSeq2SeqLM (either from huggingface or loading a local model)
     model_name = "lmsys/fastchat-t5-3b-v1.0"
     # Maximum token size of the chat history memory
@@ -34,7 +34,6 @@ def prepare_llm():
 
     memory = ConversationSummaryBufferMemory(llm=huggingface_pipe, max_token_limit=max_memory_size)
     # base conversational prompt for the chatbot, change to change the "personality" of the bot
-    base_prompt = "You are a friendly chatbot who always responds like a pirate."
     chain = ConversationChain(llm=huggingface_pipe, memory=memory,
                                          prompt=PromptTemplate(input_variables=['history', 'input'],
                                                                template=base_prompt + '\n\nCurrent conversation:\n{history}\nHuman: {input}\nAI:'))
@@ -42,7 +41,8 @@ def prepare_llm():
 
 
 # Prepare the Neural network
-conversation_buf = prepare_llm()
+base_prompt = "You are a friendly chatbot who always responds like a pirate."
+conversation_buf = prepare_llm(base_prompt)
 load_dotenv()
 # Load token from .env file
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -54,6 +54,7 @@ client = discord.Client(intents=intents)
 @client.event
 async def on_message(message):
     # Needs refactoring, bad code
+    global conversation_buf
     if re.match('-chat', message.content):
         input_prompt = message.content[6:]
         out = conversation_buf.predict(input=input_prompt)
@@ -63,7 +64,10 @@ async def on_message(message):
         res = re.sub(r'\s+', ' ', res)
         channel = message.channel.id
         await message.reply(res)
-
+    elif re.match('-base_prompt', message.content):
+        content = re.sub('-base_prompt ', "",message.content)
+        conversation_buf.prompt = PromptTemplate(input_variables=['history', 'input'],
+                                                               template=content + '\n\nCurrent conversation:\n{history}\nHuman: {input}\nAI:')
 
 @client.event
 async def on_ready():
