@@ -1,13 +1,13 @@
 import discord
 import torch
-from langchain.memory import ConversationSummaryBufferMemory
-from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
 import re
 import os
 
+from langchain.memory import ConversationSummaryBufferMemory
+from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
-from transformers import AutoTokenizer, pipeline, AutoModelForSeq2SeqLM
 from langchain.chains import ConversationChain
+from transformers import AutoTokenizer, pipeline, AutoModelForSeq2SeqLM
 from dotenv import load_dotenv
 
 # Setup the LLM for text generation
@@ -34,7 +34,7 @@ def prepare_llm():
 
     memory = ConversationSummaryBufferMemory(llm=huggingface_pipe, max_token_limit=max_memory_size)
     # base conversational prompt for the chatbot, change to change the "personality" of the bot
-    base_prompt = "You are a friendly chatbot who always responds in the style of a pirate."
+    base_prompt = "You are a friendly chatbot who always responds in a cute and endearing manner."
     chain = ConversationChain(llm=huggingface_pipe, memory=memory,
                                          prompt=PromptTemplate(input_variables=['history', 'input'],
                                                                template=base_prompt + '\n\nCurrent conversation:\n{history}\nHuman: {input}\nAI:'))
