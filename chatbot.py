@@ -3,6 +3,7 @@ import torch
 import re
 import os
 
+from discord.ext.commands import bot
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
@@ -10,8 +11,16 @@ from langchain.chains import LLMChain
 from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, BitsAndBytesConfig
 from dotenv import load_dotenv
 
+# params
+max_memory_size = 1850
+max_token_generated = 1024
+base_prompt = "You are a friendly AI that speaks like a pirate."
+temperature = 0.7
+repetition_penalty = 1.4
+
 
 # Setup the LLM for text generation
+
 def prepare_llm(base_prompt):
     # Model changeable, though different Class may be needed than AutoModelForSeq2SeqLM (either from huggingface or loading a local model)
     model_name = "mistralai/Mistral-7B-Instruct-v0.1"
@@ -23,8 +32,6 @@ def prepare_llm(base_prompt):
     )
 
     # Maximum token size of the chat history memory
-    max_memory_size = 1850
-    max_token_generated = 1024
     # fetch model_name from huggingface
     # fetch a tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_name, cache_dir="./downloaded_models")
@@ -37,8 +44,8 @@ def prepare_llm(base_prompt):
         model=model,
         tokenizer=tokenizer,
         task="text-generation",
-        temperature=0.7,
-        repetition_penalty=1.4,
+        temperature=temperature,
+        repetition_penalty=repetition_penalty,
         return_full_text=True,
         max_new_tokens=max_token_generated,
         do_sample=True,
@@ -64,7 +71,6 @@ def prepare_llm(base_prompt):
 
 # Prepare the Neural network
 # Change this base prompt to change teh "personality" of the chatbot
-base_prompt = "You are a friendly AI that speaks like a pirate."
 conversation_buf, llm = prepare_llm(base_prompt)
 load_dotenv()
 # Load token from .env file
@@ -83,15 +89,29 @@ async def on_message(message):
         res = conversation_buf.predict(input=input_prompt)
         ### Not needed for mistral
         # Remove padding tokens from output
-        #res = re.sub(r"<+.*(pad)+.*>+|(pad)>+|<+(pad)", "", out)
+        # res = re.sub(r"<+.*(pad)+.*>+|(pad)>+|<+(pad)", "", out)
         # For some reason, output contains double space
-        #res = re.sub(r'\s+', ' ', res)
+        # res = re.sub(r'\s+', ' ', res)
         ###
         await message.reply(res)
     elif re.match('-base_prompt', message.content):
         content = re.sub('-base_prompt ', "", message.content)
+        # Flush memory
+        conversation_buf.memory = ConversationSummaryBufferMemory(llm=llm, max_token_limit=max_memory_size)
+        prompt_template = (
+                "Current Conversation:{history} \n\n" +
+                "Instruction: " + content + "\n\n" +
+                "QUESTION:\n" +
+                "{input}" + "\n\n" +
+                "Answer:\n"
+        )
+        # Set new base prompt for different context
         conversation_buf.prompt = PromptTemplate(input_variables=['history', 'input'],
-                                                 template=content + '\n\nCurrent conversation:\n{history}\nHuman: {input}\nAI:')
+                                                 template=prompt_template)
+    # Command to flush conversation memory
+    elif re.match('-flush_memory', message.content):
+        conversation_buf.memory = ConversationSummaryBufferMemory(llm=llm, max_token_limit=max_memory_size)
+
 
 
 @client.event
