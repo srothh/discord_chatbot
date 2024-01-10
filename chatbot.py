@@ -1,9 +1,11 @@
+import asyncio
+from asyncio import sleep
+
 import discord
 import torch
-import re
 import os
 
-from discord.ext.commands import bot
+from discord.ext import commands
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain_community.llms.huggingface_pipeline import HuggingFacePipeline
 from langchain_core.prompts import PromptTemplate
@@ -17,6 +19,7 @@ max_token_generated = 1024
 base_prompt = "You are a friendly AI that speaks like a pirate."
 temperature = 0.7
 repetition_penalty = 1.4
+discord_command_prefix = "-"
 
 
 # Setup the LLM for text generation
@@ -77,47 +80,46 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
-client = discord.Client(intents=intents)
+bot = commands.Bot(description="Discord Chatbot", command_prefix=discord_command_prefix, intents=intents)
 
 
-@client.event
-async def on_message(message):
-    # Needs refactoring, bad code
-    global conversation_buf
-    if re.match('-chat', message.content):
-        input_prompt = message.content[6:]
+@bot.command()
+async def chat(ctx, *, arg):
+    input_prompt = arg
+    async with ctx.typing():
         res = conversation_buf.predict(input=input_prompt)
-        ### Not needed for mistral
+        ### Not needed for mistral, used for fastchat model
         # Remove padding tokens from output
         # res = re.sub(r"<+.*(pad)+.*>+|(pad)>+|<+(pad)", "", out)
         # For some reason, output contains double space
         # res = re.sub(r'\s+', ' ', res)
         ###
-        await message.reply(res)
-    elif re.match('-base_prompt', message.content):
-        content = re.sub('-base_prompt ', "", message.content)
-        # Flush memory
-        conversation_buf.memory = ConversationSummaryBufferMemory(llm=llm, max_token_limit=max_memory_size)
-        prompt_template = (
-                "Current Conversation:{history} \n\n" +
-                "Instruction: " + content + "\n\n" +
-                "QUESTION:\n" +
-                "{input}" + "\n\n" +
-                "Answer:\n"
-        )
-        # Set new base prompt for different context
-        conversation_buf.prompt = PromptTemplate(input_variables=['history', 'input'],
-                                                 template=prompt_template)
-    # Command to flush conversation memory
-    elif re.match('-flush_memory', message.content):
-        conversation_buf.memory = ConversationSummaryBufferMemory(llm=llm, max_token_limit=max_memory_size)
+        await ctx.send(res)
 
 
+@bot.command()
+async def base_prompt(ctx, *, arg):
+    prompt_template = (
+            "Current Conversation:{history} \n\n" +
+            "Instruction: " + arg + "\n\n" +
+            "QUESTION:\n" +
+            "{input}" + "\n\n" +
+            "Answer:\n"
+    )
+    conversation_buf.prompt = PromptTemplate(input_variables=['history', 'input'],
+                                             template=prompt_template)
+    conversation_buf.memory = ConversationSummaryBufferMemory(llm=llm, max_token_limit=max_memory_size)
 
-@client.event
+
+@bot.command()
+async def flush_memory(ctx):
+    conversation_buf.memory = ConversationSummaryBufferMemory(llm=llm, max_token_limit=max_memory_size)
+
+
+@bot.event
 async def on_ready():
     print('Ready')
 
 
 # run the client
-client.run(TOKEN)
+bot.run(TOKEN)
