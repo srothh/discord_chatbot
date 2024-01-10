@@ -40,7 +40,7 @@ def prepare_llm(base_prompt):
         temperature=0.7,
         repetition_penalty=1.4,
         return_full_text=True,
-        max_new_tokens=1024,
+        max_new_tokens=max_token_generated,
         do_sample=True,
     )
 
@@ -59,33 +59,34 @@ def prepare_llm(base_prompt):
     chain = LLMChain(verbose=True, llm=huggingface_pipe, memory=memory,
                      prompt=PromptTemplate(input_variables=['history', 'input'],
                                            template=prompt_template))
-    return chain, tokenizer
+    return chain, huggingface_pipe
 
 
 # Prepare the Neural network
 # Change this base prompt to change teh "personality" of the chatbot
-base_prompt = "You are a friendly chatbot that speaks like a pirate."
-conversation_buf, tokenizer = prepare_llm(base_prompt)
+base_prompt = "You are a friendly AI that speaks like a pirate."
+conversation_buf, llm = prepare_llm(base_prompt)
 load_dotenv()
 # Load token from .env file
 TOKEN = os.getenv("DISCORD_TOKEN")
 intents = discord.Intents.default()
 intents.message_content = True
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
 client = discord.Client(intents=intents)
 
 
 @client.event
 async def on_message(message):
     # Needs refactoring, bad code
-    global conversation_buf, tokenizer, device
+    global conversation_buf
     if re.match('-chat', message.content):
         input_prompt = message.content[6:]
-        out = conversation_buf.predict(input=input_prompt)
+        res = conversation_buf.predict(input=input_prompt)
+        ### Not needed for mistral
         # Remove padding tokens from output
-        res = re.sub(r"<+.*(pad)+.*>+|(pad)>+|<+(pad)", "", out)
+        #res = re.sub(r"<+.*(pad)+.*>+|(pad)>+|<+(pad)", "", out)
         # For some reason, output contains double space
-        res = re.sub(r'\s+', ' ', res)
+        #res = re.sub(r'\s+', ' ', res)
+        ###
         await message.reply(res)
     elif re.match('-base_prompt', message.content):
         content = re.sub('-base_prompt ', "", message.content)
