@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # params
 max_memory_size = 1850
 max_token_generated = 1024
-base_prompt = "You are a friendly AI that speaks like a pirate."
+base_prompt = "You are a friendly AI chatbot that speaks like a pirate."
 temperature = 0.7
 repetition_penalty = 1.4
 discord_command_prefix = "-"
@@ -26,7 +26,7 @@ discord_command_prefix = "-"
 
 def prepare_llm(base_prompt):
     # Model changeable, though different Class may be needed than AutoModelForSeq2SeqLM (either from huggingface or loading a local model)
-    model_name = "mistralai/Mistral-7B-Instruct-v0.1"
+    model_name = "mistralai/Mistral-7B-Instruct-v0.2"
     bnb_config = BitsAndBytesConfig(
         load_in_4bit=True,
         bnb_4bit_use_double_quant=True,
