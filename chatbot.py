@@ -14,9 +14,9 @@ from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, BitsAndB
 from dotenv import load_dotenv
 
 # params
-max_memory_size = 1850
+max_memory_size = 1000
 max_token_generated = 1024
-base_prompt = "You are a friendly AI chatbot that speaks like a pirate."
+base_prompt = "You are a friendly AI that speaks like a pirate."
 temperature = 0.7
 repetition_penalty = 1.4
 discord_command_prefix = "-"
@@ -88,13 +88,13 @@ async def chat(ctx, *, arg):
     input_prompt = arg
     async with ctx.typing():
         res = conversation_buf.predict(input=input_prompt)
-        ### Not needed for mistral, used for fastchat model
-        # Remove padding tokens from output
-        # res = re.sub(r"<+.*(pad)+.*>+|(pad)>+|<+(pad)", "", out)
-        # For some reason, output contains double space
-        # res = re.sub(r'\s+', ' ', res)
-        ###
-        await ctx.send(res)
+
+        # Split the result into chunks of 2000 characters (discord character limit)
+        chunks = [res[i:i+2000] for i in range(0, len(res), 2000)]
+        # Send each chunk individually
+        for chunk in chunks:
+            print(chunk)
+            await ctx.send(chunk)
 
 
 @bot.command()
