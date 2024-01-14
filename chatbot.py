@@ -14,7 +14,7 @@ from transformers import AutoTokenizer, pipeline, AutoModelForCausalLM, BitsAndB
 from dotenv import load_dotenv
 
 # params
-max_memory_size = 1700
+max_memory_size = 30000
 max_token_generated = 1024
 base_prompt = "You are a friendly AI that speaks like a pirate."
 temperature = 0.7
