@@ -16,7 +16,7 @@ from dotenv import load_dotenv
 # params
 max_memory_size = 1700
 max_token_generated = 1024
-base_prompt = "You are a friendly AI that speaks like a pirate."
+base_prompt = "You are a friendly AI that responds to queries in a helpful and informative way."
 temperature = 0.7
 repetition_penalty = 1.4
 discord_command_prefix = "-"
@@ -53,7 +53,6 @@ def prepare_llm(base_prompt):
         max_new_tokens=max_token_generated,
         do_sample=True,
     )
-
     # store history
     huggingface_pipe = HuggingFacePipeline(pipeline=pipe)
     prompt_template = (
@@ -78,6 +77,8 @@ conversation_buf, llm = prepare_llm(base_prompt)
 load_dotenv()
 # Load token from .env file
 TOKEN = os.getenv("DISCORD_TOKEN")
+if TOKEN is None:
+    raise ValueError("DISCORD_TOKEN not found in .env file")
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(description="Discord Chatbot", command_prefix=discord_command_prefix, intents=intents)
